@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Marmita Control 2.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans h-screen overflow-hidden">
+
+    <div id="auth-screen" class="absolute inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
+            <h1 class="text-2xl font-bold text-indigo-400 mb-6 flex items-center justify-center gap-2">
+                <i class="ph-fill ph-lock-key"></i> Acesso Seguro
+            </h1>
+            <input type="email" id="email" placeholder="E-mail" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 mb-4 text-white focus:outline-none focus:border-indigo-500">
+            <input type="password" id="password" placeholder="Senha" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 mb-6 text-white focus:outline-none focus:border-indigo-500">
+            <button id="btn-login" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg active:bg-indigo-700 transition">Entrar</button>
+        </div>
+    </div>
+
+    <div id="app-layout" class="hidden h-full flex flex-col md:flex-row">
+        
+        <nav class="bg-slate-800 border-t md:border-t-0 md:border-r border-slate-700 w-full md:w-64 fixed bottom-0 md:relative z-20 pb-safe md:pb-0 order-last md:order-first h-16 md:h-full">
+            <div class="hidden md:flex p-6 items-center gap-2 text-indigo-400 font-bold text-xl border-b border-slate-700">
+                <i class="ph-fill ph-bag"></i> Marmitas
+            </div>
+            <ul class="flex md:flex-col justify-around md:justify-start h-full md:h-auto md:p-4 gap-1">
+                <li class="flex-1 md:flex-none"><button class="nav-btn w-full flex md:flex-row flex-col items-center justify-center md:justify-start gap-1 md:gap-3 p-2 md:p-3 text-indigo-400 rounded-lg" data-target="view-home"><i class="ph-fill ph-squares-four text-2xl"></i><span class="text-[10px] md:text-sm font-medium">Dashboard</span></button></li>
+                <li class="flex-1 md:flex-none"><button class="nav-btn w-full flex md:flex-row flex-col items-center justify-center md:justify-start gap-1 md:gap-3 p-2 md:p-3 text-slate-400 rounded-lg" data-target="view-estoque"><i class="ph-fill ph-package text-2xl"></i><span class="text-[10px] md:text-sm font-medium">Inventário</span></button></li>
+                <li class="flex-1 md:flex-none"><button class="nav-btn w-full flex md:flex-row flex-col items-center justify-center md:justify-start gap-1 md:gap-3 p-2 md:p-3 text-slate-400 rounded-lg" data-target="view-catalogo"><i class="ph-fill ph-list-dashes text-2xl"></i><span class="text-[10px] md:text-sm font-medium">Catálogo</span></button></li>
+                <li class="flex-1 md:flex-none"><button class="nav-btn w-full flex md:flex-row flex-col items-center justify-center md:justify-start gap-1 md:gap-3 p-2 md:p-3 text-slate-400 rounded-lg" data-target="view-pessoas"><i class="ph-fill ph-users text-2xl"></i><span class="text-[10px] md:text-sm font-medium">Pessoas</span></button></li>
+            </ul>
+            <div class="hidden md:block absolute bottom-4 w-full px-4"><button id="btn-logout" class="w-full text-slate-400 hover:text-red-400 flex items-center gap-2 p-2 transition"><i class="ph ph-sign-out"></i> Sair</button></div>
+        </nav>
+
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
+            <header class="md:hidden flex justify-between items-center mb-6"><h1 class="text-xl font-bold text-indigo-400"><i class="ph-fill ph-bag"></i> Marmitas</h1></header>
+            
+            <!-- TELA: DASHBOARD UNIFICADO (Início + Ajustes + Pedidos) -->
+            <div id="view-home" class="view-section h-full flex flex-col xl:flex-row gap-6">
+                
+                <!-- Coluna Esquerda: Controle Direto -->
+                <div class="w-full xl:w-1/3 flex flex-col gap-6">
+                    
+                    <div class="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                        <h3 class="text-white font-bold mb-4 flex items-center gap-2"><i class="ph-fill ph-calendar text-indigo-400"></i> Gestão de Datas</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div><label class="block text-[10px] text-slate-400 uppercase">Início Estoque</label><input type="date" id="input-dash-inv" readonly class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded p-2 text-xs"></div>
+                            <div><label class="block text-[10px] text-slate-400 uppercase">Data da Compra</label><input type="date" id="input-dash-compra" class="w-full bg-slate-900 border border-indigo-600/50 rounded p-2 text-xs text-white"></div>
+                        </div>
+                        <div><label class="block text-[10px] text-indigo-400 font-bold uppercase">Próxima Compra Prevista</label><input type="date" id="input-dash-prox" readonly class="w-full bg-indigo-900/20 border border-indigo-800 text-indigo-300 font-bold rounded p-2 text-xs"></div>
+                    </div>
+
+                    <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex-1">
+                        <h3 class="text-white font-bold mb-4 flex items-center gap-2"><i class="ph-fill ph-chart-pie-slice text-indigo-400"></i> Resumo Analítico</h3>
+                        <table class="w-full text-left border-collapse text-xs">
+                           <thead><tr class="text-slate-400 border-b border-slate-700"><th class="py-2">Quem</th><th class="py-2 text-center text-indigo-300">Estq</th><th class="py-2 text-center">Encerra</th><th class="py-2 text-center">Mês</th><th class="py-2 text-center text-indigo-400">Compra</th></tr></thead>
+                           <tbody id="dash-table-body"></tbody>
+                           <tfoot><tr class="font-bold border-t border-slate-600"><td class="py-3 text-white">TOTAL</td><td class="py-3 text-center text-indigo-300" id="total-estoque-resumo">0</td><td></td><td class="py-3 text-center text-white" id="total-mes-resumo">0</td><td class="py-3 text-center text-indigo-400 text-sm" id="total-comprar-resumo">0</td></tr></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Coluna Direita: O Pedido -->
+                <div class="w-full xl:w-2/3 flex flex-col gap-6">
+                    <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex-1 flex flex-col">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                            <h3 class="text-white font-bold flex items-center gap-2"><i class="ph-fill ph-shopping-cart text-indigo-400"></i> Histórico & Pedidos</h3>
+                            <div class="flex items-center gap-2 bg-slate-900 px-3 py-1 rounded-lg border border-slate-700"><i class="ph-bold ph-calendar-blank text-slate-400"></i><input type="month" id="filtro-mes-pedido" class="bg-transparent text-white text-sm outline-none"></div>
+                        </div>
+                        
+                        <form id="form-pedido" class="flex flex-col md:flex-row gap-3 items-end mb-6 bg-slate-900/50 p-4 rounded-lg">
+                            <div class="w-full md:w-32"><label class="block text-[10px] text-slate-400 uppercase mb-1">Para quem?</label><select id="select-pedido-pessoa" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white"></select></div>
+                            <div class="w-full md:w-48"><label class="block text-[10px] text-slate-400 uppercase mb-1">Filtro Rápido</label><select id="select-pedido-grupo" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-indigo-300 font-bold"></select></div>
+                            <div class="flex-1 w-full"><label class="block text-[10px] text-slate-400 uppercase mb-1">Marmita</label><select id="select-pedido-marmita" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white"></select></div>
+                            <div class="w-16"><label class="block text-[10px] text-slate-400 uppercase mb-1">Qtd</label><input type="number" id="input-pedido-qtd" min="1" required class="w-full bg-slate-900 border border-indigo-600 rounded p-2 text-xs text-white text-center"></div>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded text-xs transition">Lançar</button>
+                        </form>
+
+                        <div class="overflow-x-auto flex-1 bg-slate-900 rounded-lg p-1 border border-slate-700">
+                            <table class="w-full text-left border-collapse min-w-[600px]">
+                                <thead><tr class="text-slate-400 border-b border-slate-700 text-[10px] uppercase"><th class="px-2 py-2">Quem</th><th class="py-2 hidden md:table-cell">Grupo</th><th class="py-2">Item</th><th class="py-2 text-center">Qtd</th><th class="py-2 text-right">Preço</th><th class="py-2 text-right">Subtotal</th><th class="py-2"></th></tr></thead>
+                                <tbody id="tabela-pedido-body"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Rodapé de Descontos e Total -->
+                        <div class="mt-4 bg-slate-900 border border-slate-700 rounded-lg p-4 flex flex-col md:flex-row justify-between items-end md:items-center">
+                            <div class="text-xs text-slate-400">Descontos Auto: 20 un (10%) | 30 un (12%) | 40+ un (15%)</div>
+                            <div class="text-right mt-4 md:mt-0">
+                                <div class="text-slate-400 text-sm mb-1">Volume do Mês: <span id="pedido-total-qtd" class="text-white font-bold ml-1">0</span></div>
+                                <div class="text-slate-500 text-xs line-through mb-1">Bruto: <span id="pedido-total-valor">R$ 0,00</span></div>
+                                <div id="linha-desconto-aplicado" class="hidden text-xl text-emerald-400 font-black">Líquido: <span id="pedido-total-desconto">R$ 0,00</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TELA: INVENTÁRIO (ESTOQUE BATCH) -->
+            <div id="view-estoque" class="view-section hidden max-w-xl mx-auto">
+                <div class="bg-indigo-900/30 border border-indigo-500/50 p-6 rounded-2xl text-center mb-6">
+                    <h2 class="text-3xl font-black text-indigo-400 mb-2">Abertura de Caixa (Inventário)</h2>
+                    <p class="text-slate-400 text-sm">Atualize o freezer. O momento em que você salva define a <b class="text-white">Data Inicial</b> matemática para todos os cálculos do aplicativo.</p>
+                </div>
+                
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                    <label class="block text-xs text-slate-400 uppercase mb-2 font-bold">Definir data do Inventário para:</label>
+                    <input type="date" id="input-novo-inventario-data" required class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white outline-none mb-6">
+                    
+                    <label class="block text-xs text-slate-400 uppercase mb-2 font-bold">Unidades Atuais na Geladeira:</label>
+                    <div id="lista-estoque-inputs" class="mb-8 flex flex-col gap-2"></div>
+                    
+                    <button onclick="window.salvarTodoEstoqueUI()" id="btn-salvar-estoque" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl text-lg flex items-center justify-center gap-2 hover:bg-indigo-500 transition">
+                        <i class="ph-fill ph-check-circle"></i> Salvar Inventário
+                    </button>
+                </div>
+            </div>
+            
+            <!-- TELA: CATÁLOGO -->
+            <div id="view-catalogo" class="view-section hidden max-w-xl mx-auto">
+                <div class="flex justify-between items-end mb-6">
+                    <h2 class="text-2xl font-bold text-white">Catálogo</h2>
+                    <div class="bg-slate-800 px-3 py-1 border border-slate-700 rounded-lg"><select id="filtro-catalogo-grupo" class="bg-transparent text-indigo-300 text-sm font-bold outline-none"></select></div>
+                </div>
+                <div class="bg-indigo-900/20 p-4 rounded-xl border border-indigo-800 border-dashed mb-6"><label class="block text-xs text-indigo-400 font-bold mb-2">Importar planilha (itens.xlsx)</label><input type="file" id="file-itens" accept=".xlsx, .xls" class="w-full text-xs text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded file:bg-indigo-600 file:text-white cursor-pointer"></div>
+                <form id="form-item" class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-col md:flex-row gap-2 items-end mb-6"><div class="flex-1 w-full"><label class="block text-xs text-slate-400 mb-1">Item</label><input type="text" id="input-item-nome" required class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-xs"></div><div class="w-full md:w-32"><label class="block text-xs text-slate-400 mb-1">Grupo</label><input type="text" id="input-item-grupo" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-xs"></div><div class="w-full md:w-24"><label class="block text-xs text-slate-400 mb-1">Valor (R$)</label><input type="number" step="0.01" id="input-item-preco" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white text-xs"></div><button type="submit" class="bg-indigo-600 text-white font-bold p-2 rounded w-full md:w-auto"><i class="ph-bold ph-plus"></i></button></form>
+                <div id="lista-catalogo" class="flex flex-col gap-2"></div>
+            </div>
+
+            <!-- TELA: PESSOAS -->
+            <div id="view-pessoas" class="view-section hidden max-w-xl mx-auto"><h2 class="text-2xl font-bold text-white mb-6">Pessoas e Consumo</h2>
+                <div class="bg-indigo-900/20 p-4 rounded-xl border border-indigo-800 border-dashed mb-6"><label class="block text-xs text-indigo-400 font-bold mb-2">Importar planilha (consumo.xlsx)</label><input type="file" id="file-consumo" accept=".xlsx, .xls" class="w-full text-xs text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded file:bg-indigo-600 file:text-white cursor-pointer"></div>
+                <form id="form-pessoa" class="bg-slate-800 p-6 rounded-xl border border-slate-700"><div class="mb-4"><label class="block text-xs text-slate-400 mb-1 uppercase">Nome da Pessoa</label><input type="text" id="input-nome" required class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white outline-none"></div><label class="block text-xs text-slate-400 mb-2 mt-4 uppercase">Consumo Semanal</label><div class="grid grid-cols-4 gap-2 mb-6 text-center"><div><span class="text-[10px] text-slate-400">Seg</span><input type="number" id="cons-seg" value="0" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white mt-1 text-center font-bold"></div><div><span class="text-[10px] text-slate-400">Ter</span><input type="number" id="cons-ter" value="0" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white mt-1 text-center font-bold"></div><div><span class="text-[10px] text-slate-400">Qua</span><input type="number" id="cons-qua" value="0" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white mt-1 text-center font-bold"></div><div><span class="text-[10px] text-slate-400">Qui</span><input type="number" id="cons-qui" value="0" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white mt-1 text-center font-bold"></div><div><span class="text-[10px] text-slate-400">Sex</span><input type="number" id="cons-sex" value="0" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white mt-1 text-center font-bold"></div><div><span class="text-[10px] text-slate-400">Sáb</span><input type="number" id="cons-sab" value="0" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white mt-1 text-center font-bold"></div><div><span class="text-[10px] text-slate-400">Dom</span><input type="number" id="cons-dom" value="0" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white mt-1 text-center font-bold"></div></div><button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 transition text-white font-bold py-3 rounded-lg">Salvar Manualmente</button></form>
+                <div id="lista-pessoas" class="mt-6"></div>
+            </div>
+
+        </main>
+    </div>
+    <script type="module" src="./src/app.js"></script>
+</body>
+</html>

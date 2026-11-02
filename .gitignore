@@ -1,0 +1,20 @@
+# Arquivos de ambiente e segurança (CRÍTICO)
+.env
+.env.*
+
+# Configurações do Editor (VS Code)
+.vscode/
+*.code-workspace
+
+# Arquivos de Sistema Operacional (Windows/Mac)
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Dependências (Padrão para projetos JavaScript, caso use npm no futuro)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Outros
+docs/
