@@ -1,7 +1,7 @@
 import { checkSession } from './api/auth.js';
 import { getPessoas, getConfiguracoes, getEstoque, getMarmitas, getDistribuicao } from './api/repository.js';
 import { calcularNecessidade } from './core/calculators.js';
-import { renderDashboard, renderCatalogo, renderPessoas, renderEstoque, renderSelectsPedido, renderTabelaPedido } from './ui/render.js';
+import { renderDashboard, renderCatalogo, renderPessoas, renderEstoque, renderSelectsPedido, renderTabelaPedido, renderGraficoHistorico } from './ui/render.js';
 import { setupAuthEvents } from './ui/events.js';
 
 window.carregarDadosGlobais = async function() {
@@ -19,6 +19,9 @@ window.carregarDadosGlobais = async function() {
         renderEstoque(pessoas, estoque);
         renderSelectsPedido(pessoas, marmitas);
         renderTabelaPedido(distribuicao, mesFiltro);
+        
+        // Chamada para alimentar o novo Gráfico de Histórico
+        renderGraficoHistorico(distribuicao);
 
         if(config) {
             if(config.data_inventario) document.getElementById('input-dash-inv').value = config.data_inventario;
@@ -31,7 +34,7 @@ window.carregarDadosGlobais = async function() {
 };
 
 async function initApp() {
-    console.log("Iniciando Controle de Marmitas...");
+    console.log("A iniciar Controle de Marmitas...");
     setupAuthEvents();
     
     try {
@@ -49,13 +52,7 @@ async function initApp() {
             document.getElementById('auth-screen').classList.remove('hidden');
             document.getElementById('app-layout').classList.add('hidden');
         }
-    } catch (error) { 
-        console.error("Erro na verificação de sessão:", error); 
-    }
+    } catch (error) { console.error("Erro de sessão:", error); }
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
-    initApp();
-}
+if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initApp); } else { initApp(); }

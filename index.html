@@ -8,6 +8,8 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- Adição do Chart.js para o Dashboard Histórico -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
@@ -15,7 +17,7 @@
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans h-screen overflow-hidden flex">
+<body class="bg-slate-950 text-slate-100 font-sans h-screen overflow-hidden flex flex-col md:flex-row">
 
     <!-- LOGIN -->
     <div id="auth-screen" class="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-4">
@@ -33,13 +35,14 @@
         </div>
     </div>
 
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR FIXED (Layout sem sobreposição) -->
     <nav id="sidebar" class="bg-slate-900 border-r border-slate-800 w-64 fixed h-full z-20 transition-all duration-300 flex flex-col hidden md:flex">
         <div class="flex p-4 items-center justify-between border-b border-slate-800 h-16">
             <div class="flex items-center gap-3 overflow-hidden">
                 <i class="ph-fill ph-bag text-2xl text-teal-400 shrink-0"></i>
                 <span class="sidebar-text font-bold text-white whitespace-nowrap uppercase tracking-wider text-sm">Marmitas</span>
             </div>
+            <!-- O botão de fechar não altera o layout, apenas diminui a largura (w-64 -> w-20) do bloco -->
             <button id="btn-toggle-sidebar" class="text-slate-400 hover:text-white shrink-0"><i class="ph-bold ph-list text-xl"></i></button>
         </div>
         
@@ -51,9 +54,21 @@
                 </button>
             </li>
             <li>
-                <button class="nav-btn w-full flex items-center justify-start gap-3 p-3 text-slate-400 hover:bg-slate-800/50 rounded-xl transition cursor-pointer" data-target="view-dados">
-                    <i class="ph-fill ph-database text-2xl shrink-0"></i>
-                    <span class="sidebar-text text-sm font-medium whitespace-nowrap">Cadastros</span>
+                <button class="nav-btn w-full flex items-center justify-start gap-3 p-3 text-slate-400 hover:bg-slate-800/50 rounded-xl transition cursor-pointer" data-target="view-dashboard-visual">
+                    <i class="ph-fill ph-chart-line-up text-2xl shrink-0"></i>
+                    <span class="sidebar-text text-sm font-medium whitespace-nowrap">Histórico</span>
+                </button>
+            </li>
+            <li>
+                <button class="nav-btn w-full flex items-center justify-start gap-3 p-3 text-slate-400 hover:bg-slate-800/50 rounded-xl transition cursor-pointer" data-target="view-pessoas">
+                    <i class="ph-fill ph-users text-2xl shrink-0"></i>
+                    <span class="sidebar-text text-sm font-medium whitespace-nowrap">Consumo</span>
+                </button>
+            </li>
+            <li>
+                <button class="nav-btn w-full flex items-center justify-start gap-3 p-3 text-slate-400 hover:bg-slate-800/50 rounded-xl transition cursor-pointer" data-target="view-catalogo">
+                    <i class="ph-fill ph-list-dashes text-2xl shrink-0"></i>
+                    <span class="sidebar-text text-sm font-medium whitespace-nowrap">Catálogo</span>
                 </button>
             </li>
         </ul>
@@ -65,31 +80,14 @@
             </button>
         </div>
     </nav>
-    
-    <!-- MENU MOBILE FOOTER -->
-    <nav class="md:hidden bg-slate-900 border-t border-slate-800 w-full fixed bottom-0 z-20 flex justify-around p-2">
-        <button class="nav-btn flex-1 flex flex-col items-center justify-center p-2 text-teal-400" data-target="view-superdash">
-            <i class="ph-fill ph-squares-four text-xl"></i><span class="text-[10px]">Jornada</span>
-        </button>
-        <button class="nav-btn flex-1 flex flex-col items-center justify-center p-2 text-slate-400" data-target="view-dados">
-            <i class="ph-fill ph-database text-xl"></i><span class="text-[10px]">Dados</span>
-        </button>
-        <button id="btn-logout-mobile" class="flex-1 flex flex-col items-center justify-center p-2 text-rose-500" onclick="document.getElementById('btn-logout').click()">
-            <i class="ph-bold ph-sign-out text-xl"></i><span class="text-[10px]">Sair</span>
-        </button>
-    </nav>
 
-    <!-- ÁREA PRINCIPAL -->
-    <main id="main-content" class="flex-1 h-full overflow-y-auto p-4 md:p-8 pb-20 md:ml-64 transition-all duration-300 hidden" style="display: block;">
+    <!-- MAIN CONTENT (Deslocado na margem pelo sidebar) -->
+    <main id="main-content" class="flex-1 h-full overflow-y-auto p-4 md:p-8 pb-20 md:ml-64 transition-all duration-300">
         
-        <!-- VISTA: JORNADA (SUPER DASHBOARD) -->
+        <!-- VISTA 1: A JORNADA DE OPERAÇÕES -->
         <div id="view-superdash" class="view-section block max-w-7xl mx-auto space-y-6">
-            
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
-                <div>
-                    <h2 class="text-2xl font-bold text-white">Mesa de Operações</h2>
-                    <p class="text-sm text-slate-400">Controle de Estoque e Compras</p>
-                </div>
+                <div><h2 class="text-2xl font-bold text-white">Mesa de Operações</h2><p class="text-sm text-slate-400">Controle de Estoque e Compras</p></div>
                 <div class="flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-xl border border-slate-700 shadow-inner">
                     <i class="ph-bold ph-calendar-blank text-teal-400"></i>
                     <input type="month" id="filtro-mes-pedido" class="bg-transparent text-white text-sm outline-none font-bold cursor-pointer">
@@ -97,20 +95,13 @@
             </div>
 
             <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                
                 <!-- COLUNA ESQUERDA -->
                 <div class="xl:col-span-4 flex flex-col gap-6">
-                    
                     <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
                         <h3 class="text-white font-bold mb-4 flex items-center gap-2 text-sm"><i class="ph-fill ph-package text-teal-400"></i> Passo 1: Inventário Físico</h3>
-                        <div class="flex items-center gap-2 mb-4">
-                            <label class="text-xs text-slate-400 uppercase">Data Base:</label>
-                            <input type="date" id="input-novo-inventario-data" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white outline-none flex-1">
-                        </div>
+                        <div class="flex items-center gap-2 mb-4"><label class="text-xs text-slate-400 uppercase">Data Base:</label><input type="date" id="input-novo-inventario-data" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white outline-none flex-1"></div>
                         <div id="lista-estoque-inputs" class="flex flex-col gap-1 mb-4 max-h-32 overflow-y-auto pr-1"></div>
-                        <button onclick="window.salvarTodoEstoqueUI()" id="btn-salvar-estoque" class="w-full bg-slate-800 hover:bg-slate-700 text-teal-400 border border-teal-500/30 font-bold py-2 rounded-lg text-sm transition">
-                            Gravar Inventário
-                        </button>
+                        <button onclick="window.salvarTodoEstoqueUI()" id="btn-salvar-estoque" class="w-full bg-slate-800 hover:bg-slate-700 text-teal-400 border border-teal-500/30 font-bold py-2 rounded-lg text-sm transition">Gravar Inventário</button>
                     </div>
 
                     <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
@@ -132,14 +123,11 @@
                             </table>
                         </div>
                     </div>
-
                 </div>
 
                 <!-- COLUNA DIREITA -->
                 <div class="xl:col-span-8 flex flex-col gap-6">
-                    
                     <div class="bg-slate-900 p-1 rounded-2xl border border-slate-800 shadow-xl flex-1 flex flex-col">
-                        
                         <div class="p-5 border-b border-slate-800">
                             <h3 class="text-white font-bold mb-4 flex items-center gap-2 text-sm"><i class="ph-fill ph-shopping-cart text-teal-400"></i> Passo 3: Lançamento do Pedido</h3>
                             <form id="form-pedido" class="flex flex-col md:flex-row gap-2 items-end">
@@ -150,18 +138,15 @@
                                 <button type="submit" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition h-[34px]"><i class="ph-bold ph-plus"></i></button>
                             </form>
                         </div>
-
                         <div class="flex px-5 pt-4 gap-4 border-b border-slate-800">
                             <button class="text-sm font-bold text-teal-400 border-b-2 border-teal-400 pb-2">Extrato de Lançamentos</button>
                         </div>
-
                         <div class="overflow-x-auto flex-1 p-2">
                             <table class="w-full text-left border-collapse min-w-[600px]">
                                 <thead><tr class="text-slate-500 border-b border-slate-800 text-[10px] uppercase"><th class="px-2 py-2">Quem</th><th class="py-2 hidden md:table-cell">Grupo</th><th class="py-2">Item</th><th class="py-2 text-center">Qtd</th><th class="py-2 text-right">Preço</th><th class="py-2 text-right">Total</th><th class="py-2"></th></tr></thead>
                                 <tbody id="tabela-pedido-body"></tbody>
                             </table>
                         </div>
-
                         <div class="p-5 bg-slate-950/30 rounded-b-2xl border-t border-slate-800 flex justify-between items-center">
                             <div class="text-[10px] text-slate-500 leading-tight">Gatilhos de Desconto:<br>20 un (10%) | 30 un (12%) | 40+ (15%)</div>
                             <div class="text-right">
@@ -174,6 +159,7 @@
                 </div>
             </div>
 
+            <!-- TABELA DINÂMICA (PARA O FORNECEDOR) -->
             <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl mt-6">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-white font-bold flex items-center gap-2 text-sm"><i class="ph-fill ph-file-text text-teal-400"></i> Resumo para o Fornecedor (Agrupado por Item)</h3>
@@ -197,41 +183,53 @@
                     </table>
                 </div>
             </div>
-
         </div>
 
-        <!-- VISTA: CADASTROS -->
-        <div id="view-dados" class="view-section hidden max-w-4xl mx-auto space-y-6">
-            <h2 class="text-2xl font-bold text-white mb-6">Cadastros Base</h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-white font-bold flex items-center gap-2"><i class="ph-fill ph-list-dashes text-teal-400"></i> Catálogo</h3>
-                    </div>
-                    
-                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 border-dashed mb-4"><label class="block text-xs text-teal-500 font-bold mb-2">Importar itens.xlsx</label><input type="file" id="file-itens" accept=".xlsx, .xls" class="w-full text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-slate-800 file:text-white cursor-pointer"></div>
-                    <form id="form-item" class="flex flex-col gap-2 mb-4"><input type="text" id="input-item-nome" placeholder="Nome do Item" required class="bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white"><input type="text" id="input-item-grupo" placeholder="Grupo (Ex: LINHA EQUILÍBRIO)" class="bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white"><input type="number" step="0.01" id="input-item-preco" placeholder="Preço (R$)" class="bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white"><button type="submit" class="bg-teal-600 text-white font-bold p-2 rounded text-xs">Adicionar</button></form>
+        <!-- VISTA 2: DASHBOARD VISUAL (HISTÓRICO) -->
+        <div id="view-dashboard-visual" class="view-section hidden max-w-5xl mx-auto space-y-6">
+            <h2 class="text-2xl font-bold text-white mb-6">Histórico de Custos</h2>
+            <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl">
+                <div class="h-80 w-full">
+                    <canvas id="chartHistorico"></canvas>
                 </div>
+            </div>
+        </div>
 
-                <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                    <h3 class="text-white font-bold mb-4 flex items-center gap-2"><i class="ph-fill ph-users text-teal-400"></i> Pessoas</h3>
-                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 border-dashed mb-4"><label class="block text-xs text-teal-500 font-bold mb-2">Importar consumo.xlsx</label><input type="file" id="file-consumo" accept=".xlsx, .xls" class="w-full text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-slate-800 file:text-white cursor-pointer"></div>
-                    
-                    <form id="form-pessoa" class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-2 mb-4">
-                        <input type="text" id="input-nome" placeholder="Nome" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
-                        <div class="grid grid-cols-4 gap-1 text-center">
-                            <div><span class="text-[10px] text-slate-500 block">S</span><input type="number" id="cons-seg" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
-                            <div><span class="text-[10px] text-slate-500 block">T</span><input type="number" id="cons-ter" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
-                            <div><span class="text-[10px] text-slate-500 block">Q</span><input type="number" id="cons-qua" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
-                            <div><span class="text-[10px] text-slate-500 block">Q</span><input type="number" id="cons-qui" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
-                            <div><span class="text-[10px] text-slate-500 block">S</span><input type="number" id="cons-sex" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
-                            <div><span class="text-[10px] text-slate-500 block">S</span><input type="number" id="cons-sab" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
-                            <div><span class="text-[10px] text-slate-500 block">D</span><input type="number" id="cons-dom" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
-                        </div>
-                        <button type="submit" class="bg-teal-600 text-white font-bold p-2 rounded text-xs mt-2">Salvar Manualmente</button>
-                    </form>
+        <!-- VISTA 3: PESSOAS (CONSUMO) -->
+        <div id="view-pessoas" class="view-section hidden max-w-4xl mx-auto space-y-6">
+            <h2 class="text-2xl font-bold text-white mb-6">Consulta de Consumo</h2>
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 border-dashed mb-4"><label class="block text-xs text-teal-500 font-bold mb-2">Importar consumo.xlsx</label><input type="file" id="file-consumo" accept=".xlsx, .xls" class="w-full text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-slate-800 file:text-white cursor-pointer"></div>
+                
+                <form id="form-pessoa" class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col gap-2 mb-4">
+                    <input type="text" id="input-nome" placeholder="Nome" required class="bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white">
+                    <div class="grid grid-cols-4 gap-1 text-center">
+                        <div><span class="text-[10px] text-slate-500 block">S</span><input type="number" id="cons-seg" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
+                        <div><span class="text-[10px] text-slate-500 block">T</span><input type="number" id="cons-ter" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
+                        <div><span class="text-[10px] text-slate-500 block">Q</span><input type="number" id="cons-qua" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
+                        <div><span class="text-[10px] text-slate-500 block">Q</span><input type="number" id="cons-qui" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
+                        <div><span class="text-[10px] text-slate-500 block">S</span><input type="number" id="cons-sex" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
+                        <div><span class="text-[10px] text-slate-500 block">S</span><input type="number" id="cons-sab" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
+                        <div><span class="text-[10px] text-slate-500 block">D</span><input type="number" id="cons-dom" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-xs text-white text-center"></div>
+                    </div>
+                    <button type="submit" class="bg-teal-600 hover:bg-teal-500 text-white font-bold p-2 rounded text-xs mt-2 transition">Salvar Manualmente</button>
+                </form>
+                <div id="lista-pessoas" class="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+
+        <!-- VISTA 4: CATÁLOGO -->
+        <div id="view-catalogo" class="view-section hidden max-w-4xl mx-auto space-y-6">
+            <h2 class="text-2xl font-bold text-white mb-6">Base de Itens</h2>
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-white font-bold flex items-center gap-2"><i class="ph-fill ph-list-dashes text-teal-400"></i> Catálogo</h3>
+                    <div class="bg-slate-950 px-2 py-1 border border-slate-700 rounded"><select id="filtro-catalogo-grupo" class="bg-transparent text-teal-400 text-[10px] font-bold outline-none"></select></div>
                 </div>
+                
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 border-dashed mb-4"><label class="block text-xs text-teal-500 font-bold mb-2">Importar itens.xlsx</label><input type="file" id="file-itens" accept=".xlsx, .xls" class="w-full text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-slate-800 file:text-white cursor-pointer"></div>
+                <form id="form-item" class="flex flex-col md:flex-row gap-2 mb-4"><input type="text" id="input-item-nome" placeholder="Nome do Item" required class="flex-1 bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white"><input type="text" id="input-item-grupo" placeholder="Grupo (Ex: LINHA EQUILÍBRIO)" class="w-full md:w-48 bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white"><input type="number" step="0.01" id="input-item-preco" placeholder="Preço (R$)" class="w-full md:w-32 bg-slate-950 border border-slate-700 rounded p-2 text-xs text-white"><button type="submit" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-4 py-2 rounded text-xs transition">Adicionar</button></form>
+                <div id="lista-catalogo" class="flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-1"></div>
             </div>
         </div>
 

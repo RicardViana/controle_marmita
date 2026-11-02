@@ -16,13 +16,7 @@ export function setupAuthEvents() {
             catch (error) { alert('Erro no login.'); btnLogin.innerText = "Entrar"; }
         });
     }
-    
-    if (btnLogout) {
-        btnLogout.addEventListener('click', async () => { 
-            await logout(); 
-            window.location.reload(); 
-        });
-    }
+    if (btnLogout) btnLogout.addEventListener('click', async () => { await logout(); window.location.reload(); });
 
     setupNavigation();
     setupForms();
@@ -32,15 +26,11 @@ export function setupAuthEvents() {
 window.salvarTodoEstoqueUI = async function() {
     const inputs = document.querySelectorAll('.estoque-batch-input');
     const dataInv = document.getElementById('input-novo-inventario-data').value;
-    
     let arrayEstoque = [];
-    inputs.forEach(inp => {
-        arrayEstoque.push({ pessoa_id: inp.getAttribute('data-pessoaid'), quantidade: parseInt(inp.value)||0 });
-    });
-    
+    inputs.forEach(inp => arrayEstoque.push({ pessoa_id: inp.getAttribute('data-pessoaid'), quantidade: parseInt(inp.value)||0 }));
     try { 
         const btn = document.getElementById('btn-salvar-estoque');
-        btn.innerText = 'Salvando...';
+        btn.innerText = 'A gravar...';
         await registrarInventarioCompleto(arrayEstoque, dataInv); 
         await window.carregarDadosGlobais();
         btn.innerHTML = '<i class="ph-fill ph-check-circle"></i> Salvo';
@@ -50,12 +40,12 @@ window.salvarTodoEstoqueUI = async function() {
 
 window.removerPedido = async function(id) {
     if(confirm('Remover este item?')) {
-        try { await removerDistribuicaoItem(id); await window.carregarDadosGlobais(); } 
-        catch (e) { alert('Erro.'); }
+        try { await removerDistribuicaoItem(id); await window.carregarDadosGlobais(); } catch (e) { alert('Erro.'); }
     }
 };
 
 function setupNavigation() {
+    // RESOLUÇÃO DO BUG DO MENU: Transição limpa do layout.
     const sidebar = document.getElementById('sidebar');
     const btnToggle = document.getElementById('btn-toggle-sidebar');
     const spansText = document.querySelectorAll('.sidebar-text');
@@ -63,15 +53,12 @@ function setupNavigation() {
     
     if (btnToggle && sidebar && mainContent) {
         btnToggle.addEventListener('click', () => {
-            // Alterna larguras
+            // Alterna a largura real da barra
             sidebar.classList.toggle('w-64');
             sidebar.classList.toggle('w-20');
-            
-            // Alterna margens do conteúdo principal para desktop
+            // Liberta a margem lateral do main-content para que os botões por baixo não fiquem bloqueados
             mainContent.classList.toggle('md:ml-64');
             mainContent.classList.toggle('md:ml-20');
-            
-            // Esconde os textos
             spansText.forEach(span => span.classList.toggle('hidden'));
         });
     }
@@ -79,29 +66,17 @@ function setupNavigation() {
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const targetId = e.currentTarget.getAttribute('data-target');
-            
-            // Esconde todas as vistas
             document.querySelectorAll('.view-section').forEach(el => {
-                el.classList.add('hidden');
-                el.classList.remove('block');
+                el.classList.add('hidden'); el.classList.remove('block');
             });
-            
-            // Mostra a vista selecionada
             const targetView = document.getElementById(targetId);
-            if (targetView) {
-                targetView.classList.remove('hidden');
-                targetView.classList.add('block');
-            }
+            if (targetView) { targetView.classList.remove('hidden'); targetView.classList.add('block'); }
             
-            // Estilização dos botões (ativo/inativo)
             document.querySelectorAll('.nav-btn').forEach(nav => {
-                nav.classList.remove('text-teal-400', 'bg-slate-800');
-                nav.classList.add('text-slate-400');
+                nav.classList.remove('text-teal-400', 'bg-slate-800'); nav.classList.add('text-slate-400');
             });
-            
             const btnClicado = e.currentTarget;
-            btnClicado.classList.remove('text-slate-400');
-            btnClicado.classList.add('text-teal-400', 'bg-slate-800');
+            btnClicado.classList.remove('text-slate-400'); btnClicado.classList.add('text-teal-400', 'bg-slate-800');
         });
     });
 }

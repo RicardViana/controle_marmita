@@ -1,23 +1,18 @@
 import { calcularEncerramento, calcularDescontoGlobal } from '../core/calculators.js';
 
 let cacheMarmitas = []; 
+let chartInstancia = null; // Armazena a instância do gráfico para o destruir ao recarregar
 
 export function renderDashboard(pessoas, config, estoque, calcularNecessidade) {
     const tbody = document.getElementById('dash-table-body');
     if (!tbody) return;
-
     let totalEstoque = 0, totalMes = 0, totalComprar = 0;
     tbody.innerHTML = '';
-
     pessoas.forEach(pessoa => {
         const estoquePessoa = estoque.filter(e => e.pessoa_id === pessoa.id).reduce((acc, curr) => acc + curr.quantidade, 0);
         const calc = calcularNecessidade(pessoa, config, estoquePessoa);
         const dataEncerra = calcularEncerramento(pessoa, config?.data_inventario, estoquePessoa);
-
-        totalEstoque += calc.estoque;
-        totalMes += calc.qtdMes;
-        totalComprar += calc.qtdCompra;
-
+        totalEstoque += calc.estoque; totalMes += calc.qtdMes; totalComprar += calc.qtdCompra;
         tbody.innerHTML += `
             <tr class="border-b border-slate-700/50 text-sm hover:bg-slate-700/30 transition">
                 <td class="py-3 text-white font-medium pl-2">${pessoa.nome}</td>
@@ -28,7 +23,6 @@ export function renderDashboard(pessoas, config, estoque, calcularNecessidade) {
             </tr>
         `;
     });
-
     document.getElementById('total-estoque-resumo').innerText = totalEstoque;
     document.getElementById('total-mes-resumo').innerText = totalMes;
     document.getElementById('total-comprar-resumo').innerText = totalComprar;
@@ -38,30 +32,20 @@ export function renderSelectsPedido(pessoas, marmitas) {
     cacheMarmitas = marmitas;
     const selPessoa = document.getElementById('select-pedido-pessoa');
     const selGrupo = document.getElementById('select-pedido-grupo');
-    
-    if (selPessoa) {
-        selPessoa.innerHTML = '<option value="">1. Pessoa</option>' + 
-            pessoas.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-    }
-    
+    if (selPessoa) selPessoa.innerHTML = '<option value="">1. Pessoa</option>' + pessoas.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
     if (selGrupo) {
         const grupos = [...new Set(marmitas.map(m => m.grupo).filter(Boolean))].sort();
-        selGrupo.innerHTML = '<option value="">2. Linha/Grupo</option>' + 
-            grupos.map(g => `<option value="${g}">${g}</option>`).join('');
+        selGrupo.innerHTML = '<option value="">2. Linha/Grupo</option>' + grupos.map(g => `<option value="${g}">${g}</option>`).join('');
     }
-    
     window.atualizarDropdownMarmitas('');
 }
 
 window.atualizarDropdownMarmitas = function(grupo) {
     const selMarmita = document.getElementById('select-pedido-marmita');
     if (!selMarmita) return;
-    
     let filtrado = grupo ? cacheMarmitas.filter(m => m.grupo === grupo) : cacheMarmitas;
     filtrado = filtrado.sort((a,b) => a.nome.localeCompare(b.nome));
-    
-    selMarmita.innerHTML = '<option value="">3. Item</option>' + 
-        filtrado.map(m => `<option value="${m.id}">${m.nome} (R$ ${m.preco.toFixed(2).replace('.',',')})</option>`).join('');
+    selMarmita.innerHTML = '<option value="">3. Item</option>' + filtrado.map(m => `<option value="${m.id}">${m.nome} (R$ ${m.preco.toFixed(2).replace('.',',')})</option>`).join('');
 }
 
 export function renderTabelaPedido(distribuicaoOriginal, mesFiltro) {
@@ -70,21 +54,15 @@ export function renderTabelaPedido(distribuicaoOriginal, mesFiltro) {
     if (!tbody || !tbodyAgrupado) return;
 
     const distribuicao = distribuicaoOriginal.filter(d => (d.mes_referencia || '') === mesFiltro);
-
-    let totalGeral = 0;
-    let qtdGeral = 0;
+    let totalGeral = 0, qtdGeral = 0;
     const agrupado = {};
 
     tbody.innerHTML = distribuicao.map(d => {
         const valorTotal = d.quantidade * d.marmitas.preco;
-        totalGeral += valorTotal;
-        qtdGeral += d.quantidade;
-
+        totalGeral += valorTotal; qtdGeral += d.quantidade;
         const nomeItem = d.marmitas.nome;
         if (!agrupado[nomeItem]) agrupado[nomeItem] = { qtd: 0, valorTotal: 0 };
-        agrupado[nomeItem].qtd += d.quantidade;
-        agrupado[nomeItem].valorTotal += valorTotal;
-
+        agrupado[nomeItem].qtd += d.quantidade; agrupado[nomeItem].valorTotal += valorTotal;
         return `
             <tr class="border-b border-slate-700/50 text-xs hover:bg-slate-700/30 transition">
                 <td class="py-2 text-white font-medium pl-2">${d.pessoas.nome}</td>
@@ -93,11 +71,7 @@ export function renderTabelaPedido(distribuicaoOriginal, mesFiltro) {
                 <td class="py-2 text-center text-white">${d.quantidade}</td>
                 <td class="py-2 text-right text-slate-400">R$ ${d.marmitas.preco.toFixed(2).replace('.',',')}</td>
                 <td class="py-2 text-right text-white">R$ ${valorTotal.toFixed(2).replace('.',',')}</td>
-                <td class="py-2 text-right pr-2">
-                    <button onclick="window.removerPedido('${d.id}')" class="text-rose-500 hover:text-rose-400">
-                        <i class="ph-fill ph-trash text-lg"></i>
-                    </button>
-                </td>
+                <td class="py-2 text-right pr-2"><button onclick="window.removerPedido('${d.id}')" class="text-rose-500 hover:text-rose-400"><i class="ph-fill ph-trash text-lg"></i></button></td>
             </tr>
         `;
     }).join('');
@@ -111,7 +85,6 @@ export function renderTabelaPedido(distribuicaoOriginal, mesFiltro) {
     `).join('');
 
     const valorComDesconto = calcularDescontoGlobal(qtdGeral, totalGeral);
-
     document.getElementById('pedido-total-qtd').innerText = qtdGeral;
     document.getElementById('pedido-total-valor').innerText = `R$ ${totalGeral.toFixed(2).replace('.',',')}`;
     document.getElementById('agrupado-total-qtd').innerText = qtdGeral;
@@ -121,14 +94,29 @@ export function renderTabelaPedido(distribuicaoOriginal, mesFiltro) {
     const divDescontoAgrupado = document.getElementById('linha-desconto-agrupado');
     
     if(qtdGeral >= 20) {
-        divDesconto.classList.remove('hidden');
-        divDescontoAgrupado.classList.remove('hidden');
+        divDesconto.classList.remove('hidden'); divDescontoAgrupado.classList.remove('hidden');
         document.getElementById('pedido-total-desconto').innerText = `R$ ${valorComDesconto.toFixed(2).replace('.',',')}`;
         document.getElementById('agrupado-total-desconto').innerText = `R$ ${valorComDesconto.toFixed(2).replace('.',',')}`;
     } else {
-        divDesconto.classList.add('hidden');
-        divDescontoAgrupado.classList.add('hidden');
+        divDesconto.classList.add('hidden'); divDescontoAgrupado.classList.add('hidden');
     }
+}
+
+export function renderEstoque(pessoas, estoque) {
+    const container = document.getElementById('lista-estoque-inputs');
+    if (!container) return;
+    const hoje = new Date().toISOString().split('T')[0];
+    const dataInvInput = document.getElementById('input-novo-inventario-data');
+    if (dataInvInput && !dataInvInput.value) dataInvInput.value = hoje;
+    container.innerHTML = pessoas.map(pessoa => {
+        const estPessoa = estoque.filter(e => e.pessoa_id === pessoa.id).reduce((a, b) => a + b.quantidade, 0);
+        return `
+            <div class="flex justify-between items-center bg-slate-900/50 p-2 rounded-lg mb-2 border border-slate-700/50">
+                <span class="font-bold text-white pl-2">${pessoa.nome}</span>
+                <input type="number" data-pessoaid="${pessoa.id}" value="${estPessoa}" min="0" class="estoque-batch-input w-20 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-white text-center font-bold outline-none focus:border-teal-500">
+            </div>
+        `;
+    }).join('');
 }
 
 export function renderCatalogo(marmitas, filtroGrupo = '') {
@@ -136,12 +124,10 @@ export function renderCatalogo(marmitas, filtroGrupo = '') {
     const container = document.getElementById('lista-catalogo');
     const selFiltro = document.getElementById('filtro-catalogo-grupo');
     if (!container) return;
-
     if (selFiltro && selFiltro.options.length <= 1) {
         const grupos = [...new Set(marmitas.map(m => m.grupo).filter(Boolean))].sort();
         selFiltro.innerHTML = '<option value="">Todos os Grupos</option>' + grupos.map(g => `<option value="${g}">${g}</option>`).join('');
     }
-
     const filtrado = filtroGrupo ? marmitas.filter(m => m.grupo === filtroGrupo) : marmitas;
     container.innerHTML = filtrado.sort((a,b) => a.nome.localeCompare(b.nome)).map(m => `
         <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center text-sm">
@@ -170,21 +156,54 @@ export function renderPessoas(pessoas) {
     `).join('');
 }
 
-export function renderEstoque(pessoas, estoque) {
-    const container = document.getElementById('lista-estoque-inputs');
-    if (!container) return;
+export function renderGraficoHistorico(distribuicaoOriginal) {
+    const ctx = document.getElementById('chartHistorico');
+    if (!ctx) return;
     
-    const hoje = new Date().toISOString().split('T')[0];
-    const dataInvInput = document.getElementById('input-novo-inventario-data');
-    if (dataInvInput && !dataInvInput.value) dataInvInput.value = hoje;
+    // Agrupa dados por mês de referência para gerar a timeline
+    const historico = {};
+    distribuicaoOriginal.forEach(d => {
+        if (!d.mes_referencia) return;
+        if (!historico[d.mes_referencia]) historico[d.mes_referencia] = { qtd: 0, valorTotal: 0 };
+        const val = d.quantidade * d.marmitas.preco;
+        historico[d.mes_referencia].qtd += d.quantidade;
+        historico[d.mes_referencia].valorTotal += val;
+    });
 
-    container.innerHTML = pessoas.map(pessoa => {
-        const estPessoa = estoque.filter(e => e.pessoa_id === pessoa.id).reduce((a, b) => a + b.quantidade, 0);
-        return `
-            <div class="flex justify-between items-center bg-slate-900/50 p-2 rounded-lg mb-2 border border-slate-700/50">
-                <span class="font-bold text-white pl-2">${pessoa.nome}</span>
-                <input type="number" data-pessoaid="${pessoa.id}" value="${estPessoa}" min="0" class="estoque-batch-input w-20 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-white text-center font-bold outline-none focus:border-teal-500">
-            </div>
-        `;
-    }).join('');
+    const meses = Object.keys(historico).sort();
+    const valoresLiquidos = meses.map(m => {
+        const h = historico[m];
+        return calcularDescontoGlobal(h.qtd, h.valorTotal);
+    });
+
+    // Se o gráfico já existir, destrói para redesenhar limpo (Evita sobreposição ao recarregar a tela)
+    if(chartInstancia) chartInstancia.destroy();
+
+    chartInstancia = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: meses,
+            datasets: [{
+                label: 'Custo Líquido (R$)',
+                data: valoresLiquidos,
+                borderColor: '#2dd4bf', // teal-400
+                backgroundColor: 'rgba(45, 212, 191, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#0f172a',
+                pointBorderColor: '#2dd4bf',
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(51, 65, 85, 0.5)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
 }

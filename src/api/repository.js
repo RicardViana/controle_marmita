@@ -36,7 +36,6 @@ export async function salvarMarmita(nome, grupo, preco) {
     const { error } = await supabaseClient.from('marmitas').upsert({ user_id: user.id, nome, grupo, preco }, { onConflict: 'user_id, nome' });
     if (error) throw error;
 }
-
 export async function registrarInventarioCompleto(estoqueArray, dataInv) {
     const { data: { user } } = await supabaseClient.auth.getUser();
     await supabaseClient.from('configuracoes').upsert({ user_id: user.id, data_inventario: dataInv }, { onConflict: 'user_id' });
@@ -45,7 +44,6 @@ export async function registrarInventarioCompleto(estoqueArray, dataInv) {
         await supabaseClient.from('estoque').insert([{ user_id: user.id, pessoa_id: est.pessoa_id, quantidade: est.quantidade }]);
     }
 }
-
 export async function salvarDistribuicao(pessoaId, marmitaId, quantidade, mesRef) {
     const { data: { user } } = await supabaseClient.auth.getUser();
     const { error } = await supabaseClient.from('distribuicao').insert([{ user_id: user.id, pessoa_id: pessoaId, marmita_id: marmitaId, quantidade: quantidade, mes_referencia: mesRef }]);
