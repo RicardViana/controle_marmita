@@ -16,7 +16,13 @@ export function setupAuthEvents() {
             catch (error) { alert('Erro no login.'); btnLogin.innerText = "Entrar"; }
         });
     }
-    if (btnLogout) btnLogout.addEventListener('click', async () => { await logout(); window.location.reload(); });
+    
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => { 
+            await logout(); 
+            window.location.reload(); 
+        });
+    }
 
     setupNavigation();
     setupForms();
@@ -33,11 +39,12 @@ window.salvarTodoEstoqueUI = async function() {
     });
     
     try { 
-        document.getElementById('btn-salvar-estoque').innerText = 'Salvando...';
+        const btn = document.getElementById('btn-salvar-estoque');
+        btn.innerText = 'Salvando...';
         await registrarInventarioCompleto(arrayEstoque, dataInv); 
         await window.carregarDadosGlobais();
-        document.getElementById('btn-salvar-estoque').innerHTML = '<i class="ph-fill ph-check-circle"></i> Salvo';
-        setTimeout(() => document.getElementById('btn-salvar-estoque').innerText = 'Gravar Inventário', 2000);
+        btn.innerHTML = '<i class="ph-fill ph-check-circle"></i> Salvo';
+        setTimeout(() => btn.innerText = 'Gravar Inventário', 2000);
     } catch (e) { alert('Erro ao atualizar estoque'); }
 };
 
@@ -51,29 +58,50 @@ window.removerPedido = async function(id) {
 function setupNavigation() {
     const sidebar = document.getElementById('sidebar');
     const btnToggle = document.getElementById('btn-toggle-sidebar');
-    const spans = document.querySelectorAll('.sidebar-text');
+    const spansText = document.querySelectorAll('.sidebar-text');
+    const mainContent = document.getElementById('main-content');
     
-    if (btnToggle && sidebar) {
+    if (btnToggle && sidebar && mainContent) {
         btnToggle.addEventListener('click', () => {
+            // Alterna larguras
             sidebar.classList.toggle('w-64');
             sidebar.classList.toggle('w-20');
-            spans.forEach(span => span.classList.toggle('md:hidden'));
+            
+            // Alterna margens do conteúdo principal para desktop
+            mainContent.classList.toggle('md:ml-64');
+            mainContent.classList.toggle('md:ml-20');
+            
+            // Esconde os textos
+            spansText.forEach(span => span.classList.toggle('hidden'));
         });
     }
 
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const targetId = e.currentTarget.getAttribute('data-target');
-            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            document.getElementById(targetId).classList.remove('hidden');
             
+            // Esconde todas as vistas
+            document.querySelectorAll('.view-section').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+            
+            // Mostra a vista selecionada
+            const targetView = document.getElementById(targetId);
+            if (targetView) {
+                targetView.classList.remove('hidden');
+                targetView.classList.add('block');
+            }
+            
+            // Estilização dos botões (ativo/inativo)
             document.querySelectorAll('.nav-btn').forEach(nav => {
                 nav.classList.remove('text-teal-400', 'bg-slate-800');
                 nav.classList.add('text-slate-400');
             });
             
-            e.currentTarget.classList.remove('text-slate-400');
-            e.currentTarget.classList.add('text-teal-400', 'bg-slate-800');
+            const btnClicado = e.currentTarget;
+            btnClicado.classList.remove('text-slate-400');
+            btnClicado.classList.add('text-teal-400', 'bg-slate-800');
         });
     });
 }
@@ -118,9 +146,6 @@ function setupForms() {
         const preco = parseFloat(document.getElementById('input-item-preco').value.replace('R$', '').replace(/\./g, '').replace(',', '.')) || 0;
         try { await salvarMarmita(nome, grupo, preco); document.getElementById('input-item-nome').value = ''; await window.carregarDadosGlobais(); } catch (err) {}
     });
-
-    const catFiltro = document.getElementById('filtro-catalogo-grupo');
-    if (catFiltro) catFiltro.addEventListener('change', () => window.carregarDadosGlobais());
 
     const formPedido = document.getElementById('form-pedido');
     if (formPedido) formPedido.addEventListener('submit', async (e) => {
