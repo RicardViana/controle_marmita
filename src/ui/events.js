@@ -27,7 +27,10 @@ window.salvarTodoEstoqueUI = async function() {
     const inputs = document.querySelectorAll('.estoque-batch-input');
     const dataInv = document.getElementById('input-novo-inventario-data').value;
     let arrayEstoque = [];
-    inputs.forEach(inp => arrayEstoque.push({ pessoa_id: inp.getAttribute('data-pessoaid'), quantidade: parseInt(inp.value)||0 }));
+    inputs.forEach(inp => {
+        arrayEstoque.push({ pessoa_id: inp.getAttribute('data-pessoaid'), quantidade: parseInt(inp.value)||0 });
+    });
+    
     try { 
         const btn = document.getElementById('btn-salvar-estoque');
         btn.innerText = 'A gravar...';
@@ -40,12 +43,12 @@ window.salvarTodoEstoqueUI = async function() {
 
 window.removerPedido = async function(id) {
     if(confirm('Remover este item?')) {
-        try { await removerDistribuicaoItem(id); await window.carregarDadosGlobais(); } catch (e) { alert('Erro.'); }
+        try { await removerDistribuicaoItem(id); await window.carregarDadosGlobais(); } 
+        catch (e) { alert('Erro.'); }
     }
 };
 
 function setupNavigation() {
-    // RESOLUÇÃO DO BUG DO MENU: Transição limpa do layout.
     const sidebar = document.getElementById('sidebar');
     const btnToggle = document.getElementById('btn-toggle-sidebar');
     const spansText = document.querySelectorAll('.sidebar-text');
@@ -53,10 +56,8 @@ function setupNavigation() {
     
     if (btnToggle && sidebar && mainContent) {
         btnToggle.addEventListener('click', () => {
-            // Alterna a largura real da barra
             sidebar.classList.toggle('w-64');
             sidebar.classList.toggle('w-20');
-            // Liberta a margem lateral do main-content para que os botões por baixo não fiquem bloqueados
             mainContent.classList.toggle('md:ml-64');
             mainContent.classList.toggle('md:ml-20');
             spansText.forEach(span => span.classList.toggle('hidden'));
@@ -67,16 +68,23 @@ function setupNavigation() {
         btn.addEventListener('click', (e) => {
             const targetId = e.currentTarget.getAttribute('data-target');
             document.querySelectorAll('.view-section').forEach(el => {
-                el.classList.add('hidden'); el.classList.remove('block');
+                el.classList.add('hidden');
+                el.classList.remove('block');
             });
             const targetView = document.getElementById(targetId);
-            if (targetView) { targetView.classList.remove('hidden'); targetView.classList.add('block'); }
+            if (targetView) {
+                targetView.classList.remove('hidden');
+                targetView.classList.add('block');
+            }
             
             document.querySelectorAll('.nav-btn').forEach(nav => {
-                nav.classList.remove('text-teal-400', 'bg-slate-800'); nav.classList.add('text-slate-400');
+                nav.classList.remove('text-teal-400', 'bg-slate-800');
+                nav.classList.add('text-slate-400');
             });
+            
             const btnClicado = e.currentTarget;
-            btnClicado.classList.remove('text-slate-400'); btnClicado.classList.add('text-teal-400', 'bg-slate-800');
+            btnClicado.classList.remove('text-slate-400');
+            btnClicado.classList.add('text-teal-400', 'bg-slate-800');
         });
     });
 }
@@ -139,15 +147,35 @@ function setupForms() {
     });
 }
 
+// Feedback visual "Importando..."
 function setupImports() {
     const fileConsumo = document.getElementById('file-consumo');
     if (fileConsumo) fileConsumo.addEventListener('change', (e) => {
         if (!e.target.files[0]) return;
-        importarConsumo(e.target.files[0], async () => { await window.carregarDadosGlobais(); alert("Pronto!"); }, () => {});
+        const label = fileConsumo.previousElementSibling;
+        const textoOriginal = label.innerText;
+        label.innerText = "⏳ Importando, aguarde...";
+        
+        importarConsumo(e.target.files[0], async () => { 
+            await window.carregarDadosGlobais(); 
+            label.innerText = textoOriginal;
+            fileConsumo.value = '';
+            alert("Consumo importado com sucesso!"); 
+        }, () => { label.innerText = textoOriginal; alert("Erro na importação."); });
     });
+
     const fileItens = document.getElementById('file-itens');
     if (fileItens) fileItens.addEventListener('change', (e) => {
         if (!e.target.files[0]) return;
-        importarItens(e.target.files[0], async () => { await window.carregarDadosGlobais(); alert("Pronto!"); }, () => {});
+        const label = fileItens.previousElementSibling;
+        const textoOriginal = label.innerText;
+        label.innerText = "⏳ Importando, aguarde...";
+        
+        importarItens(e.target.files[0], async () => { 
+            await window.carregarDadosGlobais(); 
+            label.innerText = textoOriginal;
+            fileItens.value = '';
+            alert("Catálogo importado com sucesso!"); 
+        }, () => { label.innerText = textoOriginal; alert("Erro na importação."); });
     });
 }

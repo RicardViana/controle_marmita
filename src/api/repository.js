@@ -36,14 +36,26 @@ export async function salvarMarmita(nome, grupo, preco) {
     const { error } = await supabaseClient.from('marmitas').upsert({ user_id: user.id, nome, grupo, preco }, { onConflict: 'user_id, nome' });
     if (error) throw error;
 }
+
+// BULK INSERT: Salva tudo de uma vez (Ultra rápido)
 export async function registrarInventarioCompleto(estoqueArray, dataInv) {
     const { data: { user } } = await supabaseClient.auth.getUser();
     await supabaseClient.from('configuracoes').upsert({ user_id: user.id, data_inventario: dataInv }, { onConflict: 'user_id' });
-    for(let est of estoqueArray) {
-        await supabaseClient.from('estoque').delete().eq('pessoa_id', est.pessoa_id).is('marmita_id', null);
-        await supabaseClient.from('estoque').insert([{ user_id: user.id, pessoa_id: est.pessoa_id, quantidade: est.quantidade }]);
+    
+    // Deleta os antigos em paralelo
+    const deletarPromises = estoqueArray.map(est => 
+        supabaseClient.from('estoque').delete().eq('pessoa_id', est.pessoa_id).is('marmita_id', null)
+    );
+    await Promise.all(deletarPromises);
+    
+    // Insere os novos num único comando
+    const insertData = estoqueArray.map(est => ({ user_id: user.id, pessoa_id: est.pessoa_id, quantidade: est.quantidade }));
+    if (insertData.length > 0) {
+        const { error } = await supabaseClient.from('estoque').insert(insertData);
+        if (error) throw error;
     }
 }
+
 export async function salvarDistribuicao(pessoaId, marmitaId, quantidade, mesRef) {
     const { data: { user } } = await supabaseClient.auth.getUser();
     const { error } = await supabaseClient.from('distribuicao').insert([{ user_id: user.id, pessoa_id: pessoaId, marmita_id: marmitaId, quantidade: quantidade, mes_referencia: mesRef }]);

@@ -59,4 +59,4 @@ export function calcularEncerramento(pessoa, dataInicioStr, estoqueInicial) {
     
     const [ano, mes, dia] = dataAtual.toISOString().split('T')[0].split('-');
     return `${dia}/${mes}/${ano}`;
-}
+}   
