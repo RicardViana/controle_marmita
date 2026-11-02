@@ -1,6 +1,6 @@
 import { calcularEncerramento, calcularDescontoGlobal } from '../core/calculators.js';
 
-let cacheMarmitas = []; // Usado para o filtro em cascata
+let cacheMarmitas = []; 
 
 export function renderDashboard(pessoas, config, estoque, calcularNecessidade) {
     const tbody = document.getElementById('dash-table-body');
@@ -19,12 +19,12 @@ export function renderDashboard(pessoas, config, estoque, calcularNecessidade) {
         totalComprar += calc.qtdCompra;
 
         tbody.innerHTML += `
-            <tr class="border-b border-slate-800 text-sm hover:bg-slate-800/50 transition">
-                <td class="py-3 text-white">${pessoa.nome}</td>
-                <td class="py-3 text-center text-slate-300 font-bold bg-slate-800 rounded">${calc.estoque}</td>
+            <tr class="border-b border-slate-700/50 text-sm hover:bg-slate-700/30 transition">
+                <td class="py-3 text-white font-medium pl-2">${pessoa.nome}</td>
+                <td class="py-3 text-center text-slate-200 font-bold bg-slate-800/80 rounded">${calc.estoque}</td>
                 <td class="py-3 text-center text-slate-400">${dataEncerra}</td>
                 <td class="py-3 text-center text-slate-300">${calc.qtdMes}</td>
-                <td class="py-3 text-center font-bold text-indigo-400">${calc.qtdCompra}</td>
+                <td class="py-3 text-center font-bold text-teal-400">${calc.qtdCompra}</td>
             </tr>
         `;
     });
@@ -40,13 +40,13 @@ export function renderSelectsPedido(pessoas, marmitas) {
     const selGrupo = document.getElementById('select-pedido-grupo');
     
     if (selPessoa) {
-        selPessoa.innerHTML = '<option value="">Selecione a Pessoa...</option>' + 
+        selPessoa.innerHTML = '<option value="">1. Pessoa</option>' + 
             pessoas.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
     }
     
     if (selGrupo) {
         const grupos = [...new Set(marmitas.map(m => m.grupo).filter(Boolean))].sort();
-        selGrupo.innerHTML = '<option value="">1. Filtre por Linha/Grupo</option>' + 
+        selGrupo.innerHTML = '<option value="">2. Linha/Grupo</option>' + 
             grupos.map(g => `<option value="${g}">${g}</option>`).join('');
     }
     
@@ -60,53 +60,74 @@ window.atualizarDropdownMarmitas = function(grupo) {
     let filtrado = grupo ? cacheMarmitas.filter(m => m.grupo === grupo) : cacheMarmitas;
     filtrado = filtrado.sort((a,b) => a.nome.localeCompare(b.nome));
     
-    selMarmita.innerHTML = '<option value="">2. Escolha o Item...</option>' + 
+    selMarmita.innerHTML = '<option value="">3. Item</option>' + 
         filtrado.map(m => `<option value="${m.id}">${m.nome} (R$ ${m.preco.toFixed(2).replace('.',',')})</option>`).join('');
 }
 
 export function renderTabelaPedido(distribuicaoOriginal, mesFiltro) {
     const tbody = document.getElementById('tabela-pedido-body');
-    if (!tbody) return;
+    const tbodyAgrupado = document.getElementById('tabela-agrupada-body');
+    if (!tbody || !tbodyAgrupado) return;
 
-    // Filtra pelo mês atual da visão
     const distribuicao = distribuicaoOriginal.filter(d => (d.mes_referencia || '') === mesFiltro);
 
     let totalGeral = 0;
     let qtdGeral = 0;
+    const agrupado = {};
 
     tbody.innerHTML = distribuicao.map(d => {
         const valorTotal = d.quantidade * d.marmitas.preco;
         totalGeral += valorTotal;
         qtdGeral += d.quantidade;
 
+        const nomeItem = d.marmitas.nome;
+        if (!agrupado[nomeItem]) agrupado[nomeItem] = { qtd: 0, valorTotal: 0 };
+        agrupado[nomeItem].qtd += d.quantidade;
+        agrupado[nomeItem].valorTotal += valorTotal;
+
         return `
-            <tr class="border-b border-slate-800 text-xs hover:bg-slate-800/50 transition">
-                <td class="py-2 text-white font-medium">${d.pessoas.nome}</td>
+            <tr class="border-b border-slate-700/50 text-xs hover:bg-slate-700/30 transition">
+                <td class="py-2 text-white font-medium pl-2">${d.pessoas.nome}</td>
                 <td class="py-2 text-slate-400 hidden md:table-cell">${d.marmitas.grupo || '-'}</td>
                 <td class="py-2 text-slate-300 max-w-[150px] truncate" title="${d.marmitas.nome}">${d.marmitas.nome}</td>
                 <td class="py-2 text-center text-white">${d.quantidade}</td>
                 <td class="py-2 text-right text-slate-400">R$ ${d.marmitas.preco.toFixed(2).replace('.',',')}</td>
                 <td class="py-2 text-right text-white">R$ ${valorTotal.toFixed(2).replace('.',',')}</td>
-                <td class="py-2 text-right">
-                    <button onclick="window.removerPedido('${d.id}')" class="text-red-500 hover:text-red-400 px-2 py-1">
-                        <i class="ph-fill ph-x-circle text-lg"></i>
+                <td class="py-2 text-right pr-2">
+                    <button onclick="window.removerPedido('${d.id}')" class="text-rose-500 hover:text-rose-400">
+                        <i class="ph-fill ph-trash text-lg"></i>
                     </button>
                 </td>
             </tr>
         `;
     }).join('');
 
+    tbodyAgrupado.innerHTML = Object.keys(agrupado).sort().map(item => `
+        <tr class="border-b border-slate-700/50 text-xs hover:bg-slate-700/30 transition">
+            <td class="py-2 text-slate-300 pl-2">${item}</td>
+            <td class="py-2 text-center text-white font-bold">${agrupado[item].qtd}</td>
+            <td class="py-2 text-right text-teal-400">R$ ${agrupado[item].valorTotal.toFixed(2).replace('.',',')}</td>
+        </tr>
+    `).join('');
+
     const valorComDesconto = calcularDescontoGlobal(qtdGeral, totalGeral);
 
     document.getElementById('pedido-total-qtd').innerText = qtdGeral;
     document.getElementById('pedido-total-valor').innerText = `R$ ${totalGeral.toFixed(2).replace('.',',')}`;
+    document.getElementById('agrupado-total-qtd').innerText = qtdGeral;
+    document.getElementById('agrupado-total-valor').innerText = `R$ ${totalGeral.toFixed(2).replace('.',',')}`;
     
     const divDesconto = document.getElementById('linha-desconto-aplicado');
+    const divDescontoAgrupado = document.getElementById('linha-desconto-agrupado');
+    
     if(qtdGeral >= 20) {
         divDesconto.classList.remove('hidden');
+        divDescontoAgrupado.classList.remove('hidden');
         document.getElementById('pedido-total-desconto').innerText = `R$ ${valorComDesconto.toFixed(2).replace('.',',')}`;
+        document.getElementById('agrupado-total-desconto').innerText = `R$ ${valorComDesconto.toFixed(2).replace('.',',')}`;
     } else {
         divDesconto.classList.add('hidden');
+        divDescontoAgrupado.classList.add('hidden');
     }
 }
 
@@ -122,13 +143,9 @@ export function renderCatalogo(marmitas, filtroGrupo = '') {
     }
 
     const filtrado = filtroGrupo ? marmitas.filter(m => m.grupo === filtroGrupo) : marmitas;
-
     container.innerHTML = filtrado.sort((a,b) => a.nome.localeCompare(b.nome)).map(m => `
         <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center text-sm">
-            <div>
-                <p class="font-bold text-white">${m.nome}</p>
-                <p class="text-xs text-indigo-400">${m.grupo}</p>
-            </div>
+            <div><p class="font-bold text-white">${m.nome}</p><p class="text-xs text-teal-400">${m.grupo}</p></div>
             <div class="text-white font-bold bg-slate-900 px-3 py-1 rounded">R$ ${m.preco.toFixed(2).replace('.', ',')}</div>
         </div>
     `).join('');
@@ -157,16 +174,16 @@ export function renderEstoque(pessoas, estoque) {
     const container = document.getElementById('lista-estoque-inputs');
     if (!container) return;
     
-    // Adiciona campo de data de hoje por padrão
     const hoje = new Date().toISOString().split('T')[0];
-    document.getElementById('input-novo-inventario-data').value = hoje;
+    const dataInvInput = document.getElementById('input-novo-inventario-data');
+    if (dataInvInput && !dataInvInput.value) dataInvInput.value = hoje;
 
     container.innerHTML = pessoas.map(pessoa => {
         const estPessoa = estoque.filter(e => e.pessoa_id === pessoa.id).reduce((a, b) => a + b.quantidade, 0);
         return `
-            <div class="flex justify-between items-center bg-slate-900 p-3 rounded-lg mb-2">
-                <span class="font-bold text-white">${pessoa.nome}</span>
-                <input type="number" data-pessoaid="${pessoa.id}" value="${estPessoa}" min="0" class="estoque-batch-input w-20 bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-white text-center font-bold outline-none focus:border-indigo-500">
+            <div class="flex justify-between items-center bg-slate-900/50 p-2 rounded-lg mb-2 border border-slate-700/50">
+                <span class="font-bold text-white pl-2">${pessoa.nome}</span>
+                <input type="number" data-pessoaid="${pessoa.id}" value="${estPessoa}" min="0" class="estoque-batch-input w-20 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-white text-center font-bold outline-none focus:border-teal-500">
             </div>
         `;
     }).join('');

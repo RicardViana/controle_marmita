@@ -5,11 +5,9 @@ export function calcularNecessidade(pessoa, config, estoqueAtual) {
     
     const dataAtual = new Date(config.data_inventario + 'T00:00:00');
     const proxima = new Date(config.data_proxima_compra + 'T00:00:00');
-    
     let totalNecessario = 0;
     const mapaDias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
     
-    // CORREÇÃO APLICADA: <= garante que o último dia (dia 25) seja contado como no Excel
     while (dataAtual <= proxima) {
         const diaDaSemana = dataAtual.getDay();
         totalNecessario += Number(pessoa[mapaDias[diaDaSemana]]) || 0;
@@ -17,19 +15,14 @@ export function calcularNecessidade(pessoa, config, estoqueAtual) {
     }
     
     const qtdCompra = totalNecessario - estoqueAtual;
-    return { 
-        qtdMes: totalNecessario, 
-        estoque: estoqueAtual, 
-        qtdCompra: qtdCompra > 0 ? qtdCompra : 0 
-    };
+    return { qtdMes: totalNecessario, estoque: estoqueAtual, qtdCompra: qtdCompra > 0 ? qtdCompra : 0 };
 }
 
 export function calcularDescontoGlobal(qtdTotal, valorTotal) {
-    // Regras matemáticas extraídas da sua fórmula =LET() do Excel
     if (qtdTotal < 20) return valorTotal;
-    if (qtdTotal >= 20 && qtdTotal < 30) return valorTotal * 0.90; // 10%
-    if (qtdTotal >= 30 && qtdTotal < 40) return valorTotal * 0.88; // 12%
-    return valorTotal * 0.85; // 15%
+    if (qtdTotal >= 20 && qtdTotal < 30) return valorTotal * 0.90;
+    if (qtdTotal >= 30 && qtdTotal < 40) return valorTotal * 0.88;
+    return valorTotal * 0.85;
 }
 
 export function calcularProximaCompraAutomatica(dataCompraStr) {

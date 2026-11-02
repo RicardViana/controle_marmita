@@ -37,19 +37,15 @@ export async function salvarMarmita(nome, grupo, preco) {
     if (error) throw error;
 }
 
-// NOVO: Função de Salvamento em Lote Rápido do Inventário
 export async function registrarInventarioCompleto(estoqueArray, dataInv) {
     const { data: { user } } = await supabaseClient.auth.getUser();
-    // Salva a nova data base de inicio de estoque
     await supabaseClient.from('configuracoes').upsert({ user_id: user.id, data_inventario: dataInv }, { onConflict: 'user_id' });
-    // Salva todo o estoque das pessoas de uma vez
     for(let est of estoqueArray) {
         await supabaseClient.from('estoque').delete().eq('pessoa_id', est.pessoa_id).is('marmita_id', null);
         await supabaseClient.from('estoque').insert([{ user_id: user.id, pessoa_id: est.pessoa_id, quantidade: est.quantidade }]);
     }
 }
 
-// NOVO: Recebe o mês do histórico
 export async function salvarDistribuicao(pessoaId, marmitaId, quantidade, mesRef) {
     const { data: { user } } = await supabaseClient.auth.getUser();
     const { error } = await supabaseClient.from('distribuicao').insert([{ user_id: user.id, pessoa_id: pessoaId, marmita_id: marmitaId, quantidade: quantidade, mes_referencia: mesRef }]);
