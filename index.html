@@ -15,7 +15,6 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        /* REGRA PARA IMPRESSÃO CORRETA DA TABELA RESUMO */
         @media print {
             body { background: white !important; color: black !important; }
             #sidebar, #auth-screen, nav, .nao-imprimir { display: none !important; }
@@ -33,7 +32,9 @@
     <div id="auth-screen" class="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-4">
         <div class="w-full max-w-sm bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl">
             <div class="flex justify-center mb-6">
-                <div class="w-16 h-16 bg-teal-500/10 rounded-xl flex items-center justify-center border border-teal-500/20"><i class="ph-fill ph-bag text-3xl text-teal-400"></i></div>
+                <div class="w-16 h-16 bg-teal-500/10 rounded-xl flex items-center justify-center border border-teal-500/20">
+                    <i class="ph-fill ph-bag text-3xl text-teal-400"></i>
+                </div>
             </div>
             <h1 class="text-xl font-bold text-center text-white mb-2">Controle de Marmitas</h1>
             <p class="text-sm text-center text-slate-400 mb-8">Acesso Restrito</p>
@@ -80,7 +81,6 @@
             
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2 nao-imprimir">
                 <div><h2 class="text-2xl font-bold text-white">Mesa de Operações</h2><p class="text-sm text-slate-400">Controle de Estoque e Compras</p></div>
-                <!-- O input month foi alterado para estilo botão, para obrigar o clique a disparar o calendário e torná-lo super visível -->
                 <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700">
                     <span class="text-slate-400 text-xs font-bold uppercase pl-2">Mês/Pedido:</span>
                     <input type="month" id="filtro-mes-pedido" class="bg-slate-950 text-teal-400 px-3 py-2 rounded text-sm font-bold border border-slate-700 outline-none cursor-pointer hover:border-teal-500 transition">
@@ -92,17 +92,36 @@
                 <div class="xl:col-span-4 flex flex-col gap-6">
                     <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
                         <h3 class="text-white font-bold mb-4 flex items-center gap-2 text-sm"><i class="ph-fill ph-package text-teal-400"></i> Passo 1: Inventário Físico</h3>
-                        <div class="flex items-center gap-2 mb-4"><label class="text-xs text-slate-400 uppercase">Data Base:</label><input type="date" id="input-novo-inventario-data" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white outline-none flex-1 cursor-pointer"></div>
-                        <div id="lista-estoque-inputs" class="flex flex-col gap-1 mb-4 max-h-32 overflow-y-auto pr-1"></div>
-                        <button onclick="window.salvarTodoEstoqueUI()" id="btn-salvar-estoque" class="w-full bg-slate-800 hover:bg-slate-700 text-teal-400 border border-teal-500/30 font-bold py-2 rounded-lg text-sm transition">Gravar Inventário</button>
+                        <div class="flex items-center gap-2 mb-4">
+                            <label class="text-xs text-slate-400 uppercase">Data Base:</label>
+                            <!-- Script em linha preenche com a data de hoje caso esteja vazio ao clicar, mas preserva a data do banco se houver -->
+                            <input type="date" id="input-novo-inventario-data" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white outline-none flex-1 cursor-pointer">
+                        </div>
+                        
+                        <!-- Botão Inicial -->
+                        <button id="btn-iniciar-inventario" onclick="
+                            if(!document.getElementById('input-novo-inventario-data').value) {
+                                document.getElementById('input-novo-inventario-data').value = new Date().toISOString().split('T')[0];
+                            }
+                            document.getElementById('area-inventario-oculta').classList.remove('hidden'); 
+                            this.classList.add('hidden');
+                        " class="w-full bg-slate-800 hover:bg-slate-700 text-teal-400 border border-teal-500/30 font-bold py-2 rounded-lg text-sm transition">
+                            Iniciar Inventário
+                        </button>
+
+                        <!-- Área Oculta -->
+                        <div id="area-inventario-oculta" class="hidden">
+                            <div id="lista-estoque-inputs" class="flex flex-col gap-1 mb-4 max-h-48 overflow-y-auto pr-1"></div>
+                            <button onclick="window.salvarTodoEstoqueUI(); document.getElementById('area-inventario-oculta').classList.add('hidden'); document.getElementById('btn-iniciar-inventario').classList.remove('hidden');" id="btn-salvar-estoque" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 rounded-lg text-sm transition">Gravar Inventário</button>
+                        </div>
                     </div>
 
                     <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
                         <h3 class="text-white font-bold mb-4 flex items-center gap-2 text-sm"><i class="ph-fill ph-calendar-check text-teal-400"></i> Passo 2: Ciclo de Compra</h3>
                         <div class="space-y-3">
-                            <div><label class="block text-[10px] text-slate-400 uppercase">Abertura de Caixa (Ref)</label><input type="date" id="input-dash-inv" readonly class="w-full bg-slate-950/50 border border-slate-800 text-slate-500 rounded p-2 text-xs"></div>
+                            <div><label class="block text-[10px] text-slate-400 uppercase">Data do Inventário</label><input type="date" id="input-dash-inv" readonly class="w-full bg-slate-950/50 border border-slate-800 text-slate-500 rounded p-2 text-xs"></div>
                             <div><label class="block text-[10px] text-slate-400 uppercase">Data do Pedido (Hoje)</label><input type="date" id="input-dash-compra" class="w-full bg-slate-950 border border-slate-600 rounded p-2 text-xs text-white focus:border-teal-500 cursor-pointer"></div>
-                            <div><label class="block text-[10px] text-teal-500 font-bold uppercase">Próximo Vencimento</label><input type="date" id="input-dash-prox" readonly class="w-full bg-teal-900/10 border border-teal-900 text-teal-400 font-bold rounded p-2 text-xs"></div>
+                            <div><label class="block text-[10px] text-teal-500 font-bold uppercase">Data da Próxima Compra</label><input type="date" id="input-dash-prox" readonly class="w-full bg-teal-900/10 border border-teal-900 text-teal-400 font-bold rounded p-2 text-xs"></div>
                         </div>
                     </div>
 
@@ -152,7 +171,7 @@
                 </div>
             </div>
 
-            <!-- TABELA DINÂMICA (PARA O FORNECEDOR) - Esta será impressa -->
+            <!-- TABELA DINÂMICA (PARA O FORNECEDOR) - Apenas esta será impressa -->
             <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-xl mt-6">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-white font-bold flex items-center gap-2 text-sm"><i class="ph-fill ph-file-text text-teal-400"></i> Resumo para o Fornecedor (Agrupado por Item)</h3>
@@ -217,7 +236,11 @@
             <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-white font-bold flex items-center gap-2"><i class="ph-fill ph-list-dashes text-teal-400"></i> Catálogo</h3>
-                    <div class="bg-slate-950 px-2 py-1 border border-slate-700 rounded"><select id="filtro-catalogo-grupo" class="bg-transparent text-teal-400 text-[10px] font-bold outline-none"></select></div>
+                    <div class="bg-slate-950 px-2 py-1 border border-slate-700 rounded">
+                        <select id="filtro-catalogo-grupo" class="bg-transparent text-teal-400 text-[10px] font-bold outline-none">
+                            <option value="" disabled selected hidden>Todos os Grupos</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 border-dashed mb-4"><label class="block text-xs text-teal-500 font-bold mb-2">Importar itens.xlsx</label><input type="file" id="file-itens" accept=".xlsx, .xls" class="w-full text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-slate-800 file:text-white cursor-pointer"></div>
